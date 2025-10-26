@@ -24,10 +24,15 @@ const handleNanoBananaCallback = (req, res) => {
   try {
     logger.info('Received Nano Banana callback:', req.body);
     
-    // 验证callbackSecret（如果需要）
+    // 验证callbackSecret - 检查请求头或请求体中的密钥
     const expectedSecret = config.callbackSecret;
-    if (req.body.callbackSecret !== expectedSecret) {
-      logger.warn('Invalid callback secret');
+    const providedSecret = req.headers['x-callback-secret'] || req.body.callbackSecret;
+    
+    if (providedSecret !== expectedSecret) {
+      logger.warn('Invalid callback secret', { 
+        expected: expectedSecret ? '***' : 'undefined',
+        provided: providedSecret ? '***' : 'undefined'
+      });
       return res.status(401).json({ error: 'Invalid callback secret' });
     }
     
@@ -51,6 +56,9 @@ const handleNanoBananaCallback = (req, res) => {
       task = taskStore.createTask({ taskId, status, resultUrl: result?.url || null });
       logger.info('Nano Banana API new task created', { taskId, status });
     }
+    
+    // 通知iOS应用或其他服务（这里可以添加推送通知等逻辑）
+    logger.info('Task processing completed, ready to notify client', { taskId, status });
     
     res.status(200).json({ message: 'Callback received and processed successfully' });
   } catch (error) {
